@@ -1,0 +1,20 @@
+{
+  "name": "pizza-42-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Orders API for Pizza 42, protected by Auth0 access tokens",
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --watch --env-file=.env src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-oauth2-jwt-bearer": "^1.6.0"
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || ^26.0.0"
+  }
+}
