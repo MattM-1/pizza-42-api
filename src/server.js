@@ -13,7 +13,8 @@ if (!AUTH0_DOMAIN || !AUTH0_AUDIENCE) {
 }
 
 const app = express();
-app.use(cors({ origin: ALLOWED_ORIGIN }));
+// ALLOWED_ORIGIN can be one origin or a comma-separated list (e.g. local + hosted frontend).
+app.use(cors({ origin: ALLOWED_ORIGIN.split(',').map((o) => o.trim()) }));
 app.use(express.json({ limit: '10kb' }));
 
 // Validates the Bearer token: signature (via Auth0's JWKS), issuer, audience and expiry.
