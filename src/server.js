@@ -66,7 +66,7 @@ app.post('/orders', checkJwt, requiredScopes('create:orders'), requireCustomerId
     });
   }
 
-  const order = saveOrder({ userId: customerIdOf(req), lines, totals: t });
+  const order = saveOrder({ customerId: customerIdOf(req), lines, totals: t });
   res.status(201).json(order);
 });
 
