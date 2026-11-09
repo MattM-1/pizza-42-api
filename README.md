@@ -22,6 +22,7 @@ Prices are calculated on the server, so the client can't set its own price. Erro
 |---|---|---|
 | `401` | `invalid_token` | missing, malformed, expired, wrongly signed, or wrong issuer or audience |
 | `403` | `insufficient_scope` | the token lacks the endpoint's scope |
+| `403` | `missing_customer_id` | the access token has no customer ID claim |
 | `403` | `email_not_verified` | the access token doesn't have `email_verified: true` |
 | `403` | `step_up_required` | order over $100 and no `create:large-orders` in the token |
 | `400` | `invalid_request` | unknown pizza or size, bad quantity, empty or oversized order |
@@ -34,7 +35,9 @@ flowchart TD
   J -- "invalid" --> E401["401 invalid_token"]
   J --> S["requiredScopes: create:orders"]
   S -- "missing" --> E403a["403 insufficient_scope"]
-  S --> V["email_verified is true?"]
+  S --> C["customer_id claim present?"]
+  C -- "no" --> E403d["403 missing_customer_id"]
+  C --> V["email_verified is true?"]
   V -- "no" --> E403b["403 email_not_verified"]
   V --> P["Validate items and price the order<br/>(discount from the marketing_opt_in claim)"]
   P --> L["Total over $100?"]
@@ -56,7 +59,7 @@ All of these come from the signed access token, never from the request body. Aut
 | `scope` (`create:large-orders`) | Add High-Level Scopes, only after MFA in that login | Orders over $100 |
 | `email_verified` (standard claim, not namespaced) | Add Email Verified Access Token Claim | Only verified customers can place orders |
 | `https://pizza42.example.com/marketing_opt_in` | Marketing | 15% discount, which also decides whether an order is over $100 |
-| `sub` | Auth0 | Identifies the customer; orders are listed per `sub` |
+| `https://pizza42.example.com/customer_id` | Add Customer ID | Owner of each order, and which orders `GET /orders` returns |
 
 ## Run
 

@@ -22,6 +22,20 @@ const checkJwt = auth({ audience: AUTH0_AUDIENCE, issuerBaseURL: `https://${AUTH
 
 const scopesOf = (req) => String(req.auth.payload.scope ?? '').split(' ');
 
+// Orders belong to the customer ID that an Auth0 post-login Action puts in the access token.
+const customerIdOf = (req) => req.auth.payload[`${NAMESPACE}customer_id`];
+
+// Fail closed: without a customer ID, orders could not be tied to an owner.
+const requireCustomerId = (req, res, next) => {
+  if (typeof customerIdOf(req) !== 'string' || customerIdOf(req) === '') {
+    return res.status(403).json({
+      error: 'missing_customer_id',
+      message: 'The access token has no customer ID claim.',
+    });
+  }
+  next();
+};
+
 // Only customers with a verified email can place orders. The standard `email_verified` claim is
 // added to the access token by the Auth0 post-login Action "Add Email Verified to Access Token".
 const requireVerifiedEmail = (req, res, next) => {
@@ -38,7 +52,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // Place an order. Needs create:orders and a verified email. Orders over $100 also need create:large-orders,
 // which an Auth0 post-login Action only adds to the token after a successful MFA step-up.
-app.post('/orders', checkJwt, requiredScopes('create:orders'), requireVerifiedEmail, (req, res) => {
+app.post('/orders', checkJwt, requiredScopes('create:orders'), requireCustomerId, requireVerifiedEmail, (req, res) => {
   const lines = priceItems(req.body?.items);
 
   // Opt-in comes from the token (set by an Auth0 Action), never from the request body.
@@ -52,13 +66,13 @@ app.post('/orders', checkJwt, requiredScopes('create:orders'), requireVerifiedEm
     });
   }
 
-  const order = saveOrder({ userId: req.auth.payload.sub, lines, totals: t });
+  const order = saveOrder({ userId: customerIdOf(req), lines, totals: t });
   res.status(201).json(order);
 });
 
 // List the caller's own orders. Needs read:orders.
-app.get('/orders', checkJwt, requiredScopes('read:orders'), (req, res) => {
-  res.json(ordersFor(req.auth.payload.sub));
+app.get('/orders', checkJwt, requiredScopes('read:orders'), requireCustomerId, (req, res) => {
+  res.json(ordersFor(customerIdOf(req)));
 });
 
 // Auth errors from the JWT middleware carry their own status (401/403); validation errors use 400.
