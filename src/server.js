@@ -22,11 +22,23 @@ const checkJwt = auth({ audience: AUTH0_AUDIENCE, issuerBaseURL: `https://${AUTH
 
 const scopesOf = (req) => String(req.auth.payload.scope ?? '').split(' ');
 
+// Only customers with a verified email can place orders. The standard `email_verified` claim is
+// added to the access token by the Auth0 post-login Action "Add Email Verified to Access Token".
+const requireVerifiedEmail = (req, res, next) => {
+  if (req.auth.payload.email_verified !== true) {
+    return res.status(403).json({
+      error: 'email_not_verified',
+      message: 'Please verify your email before placing an order.',
+    });
+  }
+  next();
+};
+
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
-// Place an order. Needs create:orders. Orders over $100 also need create:large-orders,
+// Place an order. Needs create:orders and a verified email. Orders over $100 also need create:large-orders,
 // which an Auth0 post-login Action only adds to the token after a successful MFA step-up.
-app.post('/orders', checkJwt, requiredScopes('create:orders'), (req, res) => {
+app.post('/orders', checkJwt, requiredScopes('create:orders'), requireVerifiedEmail, (req, res) => {
   const lines = priceItems(req.body?.items);
 
   // Opt-in comes from the token (set by an Auth0 Action), never from the request body.

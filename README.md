@@ -7,13 +7,14 @@ Express orders API for Pizza 42. It validates Auth0 access tokens and enforces p
 | Method | Path | Needs | Notes |
 |---|---|---|---|
 | GET | `/health` | nothing | liveness check |
-| POST | `/orders` | `create:orders` | body: `{ "items": [{ "pizzaId": "answer", "size": "L", "qty": 2 }] }`. Orders over $100 (after discount) also need `create:large-orders` |
+| POST | `/orders` | `create:orders` + verified email | body: `{ "items": [{ "pizzaId": "answer", "size": "L", "qty": 2 }] }`. Orders over $100 (after discount) also need `create:large-orders` |
 | GET | `/orders` | `read:orders` | the caller's own orders only |
 
 Valid `pizzaId`s: `margherita`, `pepperoni`, `funghi`, `quattro`, `veggie`, `answer`. Sizes: `S`, `M`, `L`.
 
 Prices are calculated on the server, so the client can't set its own price.
 An order over $100 without `create:large-orders` gets `403 { "error": "step_up_required" }`.
+An order from a customer whose access token doesn't have `email_verified: true` gets `403 { "error": "email_not_verified" }`.
 
 ## Run
 
@@ -57,5 +58,4 @@ curl -X POST http://localhost:3001/orders \
 ## Not included yet
 
 - Real storage: orders live in memory and reset on restart.
-- Email-verification enforcement: the access token has no `email_verified` claim yet. Add one with an Action, then check it in `POST /orders`.
 - Rate limiting and request logging.
